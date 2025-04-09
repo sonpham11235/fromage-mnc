@@ -7,6 +7,8 @@ import shelve
 import magic #pip install python-magic
 from multiprocessing import Pool
 from tqdm import tqdm
+from PIL import Image
+import glob
 
 headers = {
     #'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36',
@@ -151,12 +153,21 @@ def df_from_shelve(chunk_size, func, dataset_name, original_df):
         merged_df = merged_df.drop(columns=columns_to_drop)
 
         # clean up image name
-        merged_df['file'] = merged_df['file'].apply(lambda x: os.path.splitext(os.path.basename(x))[0])
+        merged_df['file'] = merged_df['file'].apply(lambda x: os.path.basename(x))
 
         # rename column from file to image
         merged_df = merged_df.rename(columns={'file': 'image'})
 
     return merged_df
+
+def resize_image(image_path, size=(256, 256)):
+    try:
+        with Image.open(image_path) as img:
+            img = img.convert("RGB") 
+            img = img.resize(size, Image.Resampling.LANCZOS)
+            img.save(image_path, format="JPEG")
+    except Exception as e:
+        print(f"Error resizing {image_path}: {e}")
 
 if __name__ == "__main__":
 
@@ -169,7 +180,7 @@ if __name__ == "__main__":
     train_nrows = int(sys.argv[1]) if len(sys.argv) > 2 else 100
     val_nrows = int(sys.argv[2]) if len(sys.argv) > 1 else 50
 
-    data_name = "data/validation"
+    data_name = "data/cc3m/validation"
     original_data = open_tsv("datasets/Validation_GCC-1.1.0-Validation.tsv", data_name, nrows=val_nrows)
     df_multiprocess(df=original_data, processes=num_processes, chunk_size=images_per_part, func=download_image, dataset_name=data_name)
     df = df_from_shelve(chunk_size=images_per_part, func=download_image, dataset_name=data_name, original_df=original_data)
@@ -177,8 +188,12 @@ if __name__ == "__main__":
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     df.to_csv(output_path, sep='\t', index=False)
     print("Saved.")
+    image_paths = glob.glob(os.path.join(data_name, "*.jpg"))
+    for path in image_paths:
+        resize_image(path)
+    print("Resized")
 
-    data_name = "data/training"
+    data_name = "data/cc3m/training"
     original_data = open_tsv("datasets/Train_GCC-training.tsv", data_name, nrows=train_nrows)
     df_multiprocess(df=original_data, processes=num_processes, chunk_size=images_per_part, func=download_image, dataset_name=data_name)
     df = df_from_shelve(chunk_size=images_per_part, func=download_image, dataset_name=data_name, original_df=original_data)
@@ -186,3 +201,7 @@ if __name__ == "__main__":
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     df.to_csv(output_path, sep='\t', index=False)
     print("Saved.")
+    image_paths = glob.glob(os.path.join(data_name, "*.jpg"))
+    for path in image_paths:
+        resize_image(path)
+    print("Resized")

@@ -37,4 +37,5 @@ transformers
 typing_extensions
 urllib3
 python-magic
+pillow
 git+https://github.com/ildoonet/pytorch-gradual-warmup-lr.git
