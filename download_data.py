@@ -154,7 +154,7 @@ def df_from_shelve(chunk_size, func, dataset_name, original_df):
         merged_df['file'] = merged_df['file'].apply(lambda x: os.path.splitext(os.path.basename(x))[0])
 
         # rename column from file to image
-        df = df.rename(columns={'file': 'image'})
+        merged_df = merged_df.rename(columns={'file': 'image'})
 
     return merged_df
 
@@ -175,7 +175,7 @@ if __name__ == "__main__":
     df = df_from_shelve(chunk_size=images_per_part, func=download_image, dataset_name=data_name, original_df=original_data)
     output_path = "datasets/cc3m_val.tsv"
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    df.to_csv(output_path, sep='\t', header=False, index=False)
+    df.to_csv(output_path, sep='\t', index=False)
     print("Saved.")
 
     data_name = "data/training"
@@ -183,7 +183,6 @@ if __name__ == "__main__":
     df_multiprocess(df=original_data, processes=num_processes, chunk_size=images_per_part, func=download_image, dataset_name=data_name)
     df = df_from_shelve(chunk_size=images_per_part, func=download_image, dataset_name=data_name, original_df=original_data)
     output_path = "datasets/cc3m_train.tsv"
-    print(df.sample(3))
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    df.to_csv(output_path, sep='\t', header=False, index=False)
+    df.to_csv(output_path, sep='\t', index=False)
     print("Saved.")
