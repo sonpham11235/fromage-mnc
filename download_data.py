@@ -116,53 +116,74 @@ def download_image(row):
         row['file'] = fname
     return row
 
-# def open_tsv(fname, folder):
-#     print("Opening %s Data File..." % fname)
-#     df = pd.read_csv(fname, sep='\t', names=["caption","url"], usecols=range(1,2))
-#     df['folder'] = folder
-#     print("Processing", len(df), " Images:")
-#     return df
-
 def open_tsv(fname, folder, nrows=20):
     print(f"Opening {fname} Data File (only first {nrows} rows)...")
     os.makedirs(folder, exist_ok=True)
-    df = pd.read_csv(fname, sep='\t', names=["caption", "url"], usecols=range(1,2), nrows=nrows)
+    df = pd.read_csv(fname, sep='\t', names=["caption", "url"], nrows=nrows)
     df['folder'] = folder
     print(f"Processing {len(df)} Images from {fname}:")
     return df
 
-def df_from_shelve(chunk_size, func, dataset_name):
+def df_from_shelve(chunk_size, func, dataset_name, original_df):
     print("Generating Dataframe from results...")
     with shelve.open('%s_%s_%s_results.tmp' % (dataset_name, func.__name__, chunk_size)) as results:
         keylist = sorted([int(k) for k in results.keys()])
-        df = pd.concat([results[str(k)][1] for k in keylist], sort=True)
-    return df
+        headers = ['file', 'folder', 'mimetype', 'size', 'status', 'url']
+        df = pd.DataFrame()
+        for key in keylist:
+            chunk_data = results[str(key)][1]
+            # Assuming chunk_data is a list of lists (rows)
+            chunk_df = pd.DataFrame(chunk_data, columns=headers)
+            # Filter chunk_df for rows where 'status' is 200
+            filtered_chunk_df = chunk_df[chunk_df['status'] == 200]
+            # Append the filtered chunk to the main DataFrame
+            df = pd.concat([df, filtered_chunk_df], ignore_index=True)
+        
+        # merge original tsv data with downloaded data
+        merged_df = pd.merge(original_df, df, on='url', how='inner')
+
+        # only keeps status 200
+        merged_df = merged_df[merged_df['status'] == 200]
+
+        # drop redundant columns
+        columns_to_keep = ['caption', 'file']
+        columns_to_drop = [col for col in merged_df.columns if col not in columns_to_keep]
+        merged_df = merged_df.drop(columns=columns_to_drop)
+
+        # clean up image name
+        merged_df['file'] = merged_df['file'].apply(lambda x: os.path.splitext(os.path.basename(x))[0])
+
+        # rename column from file to image
+        df = df.rename(columns={'file': 'image'})
+
+    return merged_df
 
 if __name__ == "__main__":
 
     # number of processes in the pool can be larger than cores
-    num_processes = 32
+    num_processes = 16
     # chunk_size is how many images per chunk per process - changing this resets progress when restarting.
-    images_per_part = 100
+    images_per_part = 20
 
     import sys
     train_nrows = int(sys.argv[1]) if len(sys.argv) > 2 else 100
     val_nrows = int(sys.argv[2]) if len(sys.argv) > 1 else 50
 
-    data_name = "data/cc3m/validation"
-    df = open_tsv("datasets/Validation_GCC-1.1.0-Validation.tsv", data_name, nrows=val_nrows)
-    df_multiprocess(df=df, processes=num_processes, chunk_size=images_per_part, func=download_image, dataset_name=data_name)
-    df = df_from_shelve(chunk_size=images_per_part, func=download_image, dataset_name=data_name)
-    output_path = "downloaded_%s_report.tsv.gz" % data_name
+    data_name = "data/validation"
+    original_data = open_tsv("datasets/Validation_GCC-1.1.0-Validation.tsv", data_name, nrows=val_nrows)
+    df_multiprocess(df=original_data, processes=num_processes, chunk_size=images_per_part, func=download_image, dataset_name=data_name)
+    df = df_from_shelve(chunk_size=images_per_part, func=download_image, dataset_name=data_name, original_df=original_data)
+    output_path = "datasets/cc3m_val.tsv"
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    df.to_csv(output_path, compression='gzip', sep='\t', header=False, index=False)
+    df.to_csv(output_path, sep='\t', header=False, index=False)
     print("Saved.")
 
-    data_name = "data/cc3m/training"
-    df = open_tsv("datasets/Train_GCC-training.tsv",data_name, nrows=train_nrows)
-    df_multiprocess(df=df, processes=num_processes, chunk_size=images_per_part, func=download_image, dataset_name=data_name)
-    df = df_from_shelve(chunk_size=images_per_part, func=download_image, dataset_name=data_name)
-    output_path = "downloaded_%s_report.tsv.gz" % data_name
+    data_name = "data/training"
+    original_data = open_tsv("datasets/Train_GCC-training.tsv", data_name, nrows=train_nrows)
+    df_multiprocess(df=original_data, processes=num_processes, chunk_size=images_per_part, func=download_image, dataset_name=data_name)
+    df = df_from_shelve(chunk_size=images_per_part, func=download_image, dataset_name=data_name, original_df=original_data)
+    output_path = "datasets/cc3m_train.tsv"
+    print(df.sample(3))
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    df.to_csv(output_path, compression='gzip', sep='\t', header=False, index=False)
+    df.to_csv(output_path, sep='\t', header=False, index=False)
     print("Saved.")
