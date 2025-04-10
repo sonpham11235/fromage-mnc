@@ -175,9 +175,9 @@ def resize_image(image_path, size=(256, 256)):
 if __name__ == "__main__":
 
     # number of processes in the pool can be larger than cores
-    num_processes = 16
+    num_processes = 32
     # chunk_size is how many images per chunk per process - changing this resets progress when restarting.
-    images_per_part = 20
+    images_per_part = 100
 
     import sys
     train_nrows = int(sys.argv[1]) if len(sys.argv) > 2 else None
