@@ -230,6 +230,7 @@ class FromageModel(nn.Module):
 
       bs, seq_len, embs_dim = input_embs.shape
       if concat_captions:
+        print(batch_size)
         assert len(input_embs.shape) == 3, input_embs
         assert len(full_labels.shape) == 2, full_labels
         assert batch_size % 2 == 0
