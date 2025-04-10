@@ -10,6 +10,7 @@ from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
+from torchinfo import summary
 from functools import partial
 import pickle as pkl
 from PIL import Image, UnidentifiedImageError
@@ -55,7 +56,7 @@ class FromageModel(nn.Module):
       self.lm = OPTForCausalLM.from_pretrained(opt_version)
     else:
       raise NotImplementedError
-
+    summary(self.lm)
     self.opt_version = opt_version
 
     if self.args.freeze_lm:
@@ -72,6 +73,7 @@ class FromageModel(nn.Module):
     print(f'Initializing embedding for the retrieval token [RET] (id = {self.retrieval_token_idx}).')
     self.lm.resize_token_embeddings(len(tokenizer))
 
+    # here
     self.input_embeddings = self.lm.get_input_embeddings()
 
     print("Restoring pretrained weights for the visual model.")
