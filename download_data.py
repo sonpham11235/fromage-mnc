@@ -158,6 +158,9 @@ def df_from_shelve(chunk_size, func, dataset_name, original_df):
         # clean up image name
         merged_df['file'] = merged_df['file'].apply(lambda x: os.path.basename(x))
 
+        # only use files with jpg extension
+        merged_df = merged_df[merged_df['file'].str.lower().str.endswith('.jpg')]
+
         # rename column from file to image
         merged_df = merged_df.rename(columns={'file': 'image'})
 
