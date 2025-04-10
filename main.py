@@ -499,8 +499,6 @@ def train(train_loader, model, tokenizer, criterion, optimizer, epoch, scheduler
     losses.update(loss.item(), images.size(0))
     loss.backward()
     
-    print(loss)
-
     # Update weights
     if ((i + 1) % args.grad_accumulation_steps == 0) or (i == args.steps_per_epoch - 1):
       # Zero out gradients of the embedding matrix outside of [RET].
