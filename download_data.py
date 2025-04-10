@@ -118,10 +118,13 @@ def download_image(row):
         row['file'] = fname
     return row
 
-def open_tsv(fname, folder, nrows=20):
+def open_tsv(fname, folder, nrows):
     print(f"Opening {fname} Data File (only first {nrows} rows)...")
     os.makedirs(folder, exist_ok=True)
-    df = pd.read_csv(fname, sep='\t', names=["caption", "url"], nrows=nrows)
+    if nrows is not None:
+        df = pd.read_csv(fname, sep='\t', names=["caption", "url"], nrows=nrows)
+    else:
+        df = pd.read_csv(fname, sep='\t', names=["caption", "url"])
     df['folder'] = folder
     print(f"Processing {len(df)} Images from {fname}:")
     return df
@@ -177,8 +180,8 @@ if __name__ == "__main__":
     images_per_part = 20
 
     import sys
-    train_nrows = int(sys.argv[1]) if len(sys.argv) > 2 else 100
-    val_nrows = int(sys.argv[2]) if len(sys.argv) > 1 else 50
+    train_nrows = int(sys.argv[1]) if len(sys.argv) > 2 else None
+    val_nrows = int(sys.argv[2]) if len(sys.argv) > 1 else None
 
     data_name = "data/cc3m/validation"
     original_data = open_tsv("datasets/Validation_GCC-1.1.0-Validation.tsv", data_name, nrows=val_nrows)
