@@ -26,7 +26,6 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 from torch.utils.tensorboard import SummaryWriter
 import torchvision
-from torchinfo import summary
 
 from fromage import data
 from fromage import losses as losses_utils
@@ -502,8 +501,6 @@ def train(train_loader, model, tokenizer, criterion, optimizer, epoch, scheduler
 
     # Update weights
     if ((i + 1) % args.grad_accumulation_steps == 0) or (i == args.steps_per_epoch - 1):
-      print('============ Model summary ===============')
-      summary(model)
       print('============ model.module.model ============')
       print(model.module.model)
       print('============ model.module.model.input_embeddings ==============')
