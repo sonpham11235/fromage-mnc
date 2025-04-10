@@ -498,19 +498,13 @@ def train(train_loader, model, tokenizer, criterion, optimizer, epoch, scheduler
     loss = loss / args.grad_accumulation_steps
     losses.update(loss.item(), images.size(0))
     loss.backward()
+    
+    print(loss)
 
     # Update weights
     if ((i + 1) % args.grad_accumulation_steps == 0) or (i == args.steps_per_epoch - 1):
-      print('============ model.module.model ============')
-      print(model.module.model)
-      print('============ model.module.model.input_embeddings ==============')
-      print(model.module.model.input_embeddings)
-      print('============ model.module.model.input_embeddings.parameters ==============')
-      print(model.module.model.input_embeddings.parameters())
       # Zero out gradients of the embedding matrix outside of [RET].
       for param in model.module.model.input_embeddings.parameters():
-        print('=========== Param ==============')
-        print(param)
         assert param.grad.shape[0] == len(tokenizer)
         # Keep other embeddings frozen.
         mask = torch.arange(param.grad.shape[0]) != args.retrieval_token_idx
